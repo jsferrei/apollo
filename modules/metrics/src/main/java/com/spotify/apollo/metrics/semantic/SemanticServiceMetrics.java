@@ -19,6 +19,9 @@
  */
 package com.spotify.apollo.metrics.semantic;
 
+import com.codahale.metrics.ExponentiallyDecayingReservoir;
+import com.codahale.metrics.Reservoir;
+import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -35,8 +38,10 @@ import com.spotify.apollo.metrics.ServiceMetrics;
 import com.spotify.metrics.core.MetricId;
 import com.spotify.metrics.core.SemanticMetricRegistry;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -190,9 +195,9 @@ class SemanticServiceMetrics implements ServiceMetrics {
   }
 
   private Optional<Timer> requestDurationTimer(MetricId id) {
+    final Supplier<Reservoir> slidingTimeWindow = () -> new SlidingTimeWindowReservoir(30, TimeUnit.SECONDS);
     return enabledMetrics.test(ENDPOINT_REQUEST_DURATION) ?
-           Optional.of(metricRegistry
-               .timer(id.tagged("what", ENDPOINT_REQUEST_DURATION.tag()))) :
+           Optional.of(metricRegistry.timer(id.tagged("what", ENDPOINT_REQUEST_DURATION.tag()), slidingTimeWindow)) :
            Optional.empty();
   }
 
